@@ -64,11 +64,8 @@ private struct PopupModifier<PopupContent: View>: ViewModifier {
                         .allowsHitTesting(isPresented)
                         .accessibilityHidden(!isPresented)
                 }
-                // Hiện: easeOut nhanh gọn. Đóng: easeInOut mềm. Cả 2 lớp cùng một nhịp.
-                .animation(
-                    isPresented ? .easeOut(duration: 0.25) : .easeInOut(duration: 0.22),
-                    value: isPresented
-                )
+                // Hiện & đóng cùng một nhịp cho cả dim + card.
+                .animation(.easeInOut(duration: 0.22), value: isPresented)
             }
     }
 }
