@@ -17,11 +17,13 @@ extension View {
     /// - Parameters:
     ///   - isPresented: bật/tắt popup. Tự animate khi đổi giá trị.
     ///   - dimOpacity: độ tối của nền mờ phía sau (mặc định 0.35).
+    ///   - horizontalPadding: lề trái/phải của popup so với mép màn hình (mặc định 16).
     ///   - dismissOnTapOutside: chạm ra ngoài để đóng (mặc định true).
     ///   - content: nội dung popup.
     func popup<PopupContent: View>(
         isPresented: Binding<Bool>,
         dimOpacity: Double = 0.35,
+        horizontalPadding: CGFloat = 16,
         dismissOnTapOutside: Bool = true,
         @ViewBuilder content: () -> PopupContent
     ) -> some View {
@@ -29,6 +31,7 @@ extension View {
             PopupModifier(
                 isPresented: isPresented,
                 dimOpacity: dimOpacity,
+                horizontalPadding: horizontalPadding,
                 dismissOnTapOutside: dismissOnTapOutside,
                 popupContent: content()
             )
@@ -39,6 +42,7 @@ extension View {
 private struct PopupModifier<PopupContent: View>: ViewModifier {
     @Binding var isPresented: Bool
     let dimOpacity: Double
+    let horizontalPadding: CGFloat
     let dismissOnTapOutside: Bool
     let popupContent: PopupContent
 
@@ -57,7 +61,7 @@ private struct PopupModifier<PopupContent: View>: ViewModifier {
                     // Card: luôn ở trong cây view, chỉ animate opacity/scale
                     // -> không bị "giật 1 frame" như khi insert/remove + .transition.
                     popupContent
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, horizontalPadding)
                         .compositingGroup() // fade như một khối: nền + chữ + shadow cùng nhau
                         .opacity(isPresented ? 1 : 0)
                         .scaleEffect(isPresented ? 1 : 0.96)
