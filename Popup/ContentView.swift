@@ -8,6 +8,21 @@
 import SwiftUI
 
 struct ContentView: View {
+    var body: some View {
+        TabView {
+            NavigationStack {
+                HomeScreen()
+                    .navigationTitle("Trang chủ")
+            }
+            .tabItem { Label("Home", systemImage: "house") }
+
+            Text("Tab 2")
+                .tabItem { Label("Khác", systemImage: "star") }
+        }
+    }
+}
+
+struct HomeScreen: View {
     @State private var showPopup = false
 
     var body: some View {
@@ -21,6 +36,7 @@ struct ContentView: View {
                 .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Modifier như .sheet, nhưng dim phủ toàn màn hình (kể cả tab bar).
         .popup(isPresented: $showPopup) {
             ToastView { showPopup = false }
         }

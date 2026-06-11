@@ -2,21 +2,22 @@
 //  View+Popup.swift
 //  Popup
 //
-//  Popup ở giữa màn hình: hiện ra fade + phình nhẹ, đóng fade nhẹ.
-//  Dùng như .sheet:
+//  Modifier .popup(isPresented:) dùng như .sheet, nhưng bên trong chạy
+//  bằng UIWindow riêng (xem PopupWindow.swift) nên dim phủ TOÀN màn hình
+//  — kể cả tab bar / navigation bar — dù gắn ở bất kỳ view nào.
 //
 //      .popup(isPresented: $show) {
-//          MyCard { show = false }
+//          ToastView { show = false }
 //      }
 //
 
 import SwiftUI
 
 extension View {
-    /// Hiển thị một popup ở giữa màn hình với hiệu ứng fade nhẹ.
+    /// Hiển thị popup toàn cục ở giữa màn hình (fade nhẹ) theo cờ `isPresented`.
     /// - Parameters:
-    ///   - isPresented: bật/tắt popup. Tự animate khi đổi giá trị.
-    ///   - dimOpacity: độ tối của nền mờ phía sau (mặc định 0.35).
+    ///   - isPresented: bật/tắt popup. Đặt `false` (vd từ nút trong card) để đóng.
+    ///   - dimOpacity: độ tối của nền mờ (mặc định 0.35).
     ///   - horizontalPadding: lề trái/phải của popup so với mép màn hình (mặc định 16).
     ///   - dismissOnTapOutside: chạm ra ngoài để đóng (mặc định true).
     ///   - content: nội dung popup.
@@ -25,51 +26,44 @@ extension View {
         dimOpacity: Double = 0.35,
         horizontalPadding: CGFloat = 16,
         dismissOnTapOutside: Bool = true,
-        @ViewBuilder content: () -> PopupContent
+        @ViewBuilder content: @escaping () -> PopupContent
     ) -> some View {
         modifier(
-            PopupModifier(
+            PopupPresentationModifier(
                 isPresented: isPresented,
                 dimOpacity: dimOpacity,
                 horizontalPadding: horizontalPadding,
                 dismissOnTapOutside: dismissOnTapOutside,
-                popupContent: content()
+                popupContent: content
             )
         )
     }
 }
 
-private struct PopupModifier<PopupContent: View>: ViewModifier {
+private struct PopupPresentationModifier<PopupContent: View>: ViewModifier {
     @Binding var isPresented: Bool
     let dimOpacity: Double
     let horizontalPadding: CGFloat
     let dismissOnTapOutside: Bool
-    let popupContent: PopupContent
+    @ViewBuilder let popupContent: () -> PopupContent
 
     func body(content: Content) -> some View {
         content
-            .overlay {
-                ZStack {
-                    // Nền mờ
-                    Color.black.opacity(isPresented ? dimOpacity : 0)
-                        .ignoresSafeArea()
-                        .allowsHitTesting(isPresented)
-                        .onTapGesture {
-                            if dismissOnTapOutside { isPresented = false }
-                        }
-
-                    // Card: luôn ở trong cây view, chỉ animate opacity/scale
-                    // -> không bị "giật 1 frame" như khi insert/remove + .transition.
-                    popupContent
-                        .padding(.horizontal, horizontalPadding)
-                        .compositingGroup() // fade như một khối: nền + chữ + shadow cùng nhau
-                        .opacity(isPresented ? 1 : 0)
-                        .scaleEffect(isPresented ? 1 : 0.96)
-                        .allowsHitTesting(isPresented)
-                        .accessibilityHidden(!isPresented)
-                }
-                // Hiện & đóng cùng một nhịp cho cả dim + card.
-                .animation(.easeInOut(duration: 0.22), value: isPresented)
+            // Hiện ngay cả khi vào màn đã ở trạng thái isPresented == true.
+            .onAppear { if isPresented { present() } }
+            .onChange(of: isPresented) { _, shown in
+                if shown { present() } else { Popup.dismiss() }
             }
+    }
+
+    private func present() {
+        Popup.show(
+            dimOpacity: dimOpacity,
+            horizontalPadding: horizontalPadding,
+            dismissOnTapOutside: dismissOnTapOutside,
+            onDismiss: { isPresented = false }   // tap ngoài -> đồng bộ lại cờ
+        ) {
+            popupContent()
+        }
     }
 }
